@@ -1,0 +1,577 @@
+
+
+<!DOCTYPE html>
+<!--[if IE 8]><html class="no-js lt-ie9" lang="en" > <![endif]-->
+<!--[if gt IE 8]><!--> <html class="no-js" lang="en" > <!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <title>Manual &mdash; dnspredict 2020 documentation</title>
+  
+
+  
+  
+  
+  
+
+  
+  <script type="text/javascript" src="_static/js/modernizr.min.js"></script>
+  
+    
+      <script type="text/javascript" id="documentation_options" data-url_root="./" src="_static/documentation_options.js"></script>
+        <script src="_static/jquery.js"></script>
+        <script src="_static/underscore.js"></script>
+        <script src="_static/doctools.js"></script>
+        <script src="_static/language_data.js"></script>
+    
+    <script type="text/javascript" src="_static/js/theme.js"></script>
+
+    
+
+  
+  <link rel="stylesheet" href="_static/css/theme.css" type="text/css" />
+  <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+  <link rel="stylesheet" href="_static/table.css" type="text/css" />
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="Experimental Results" href="results.html" />
+    <link rel="prev" title="dnspredict" href="index.html" /> 
+</head>
+
+<body class="wy-body-for-nav">
+
+   
+  <div class="wy-grid-for-nav">
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+          
+
+          
+            <a href="index.html" class="icon icon-home"> dnspredict
+          
+
+          
+          </a>
+
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+              
+            
+            
+              <p class="caption"><span class="caption-text">Contents:</span></p>
+<ul class="current">
+<li class="toctree-l1 current"><a class="current reference internal" href="#">Manual</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#requirements">Requirements</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#usage">Usage</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#preparing-data">Preparing data</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#preparing-training-data">Preparing training data</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#building-the-model">Building the model</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#training-the-model">Training the model</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#using-the-model-for-predictions">Using the model for predictions</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#anomaly-detection">Anomaly detection</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="results.html">Experimental Results</a></li>
+</ul>
+
+            
+          
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" aria-label="top navigation">
+        
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="index.html">dnspredict</a>
+        
+      </nav>
+
+
+      <div class="wy-nav-content">
+        
+        <div class="rst-content style-external-links">
+        
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="wy-breadcrumbs">
+    
+      <li><a href="index.html">Docs</a> &raquo;</li>
+        
+      <li>Manual</li>
+    
+    
+      <li class="wy-breadcrumbs-aside">
+        
+            
+        
+      </li>
+    
+  </ul>
+
+  
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  <div class="section" id="manual">
+<h1>Manual<a class="headerlink" href="#manual" title="Permalink to this headline">¶</a></h1>
+<p><code class="docutils literal notranslate"><span class="pre">dnspredict</span></code> is a Python implementation of a <em>Long Short-Term Memory</em> (LSTM) network for the predictive modeling of the Domain Name Server (DNS) system. The model is trained to predict the volume of DNS queries that the system will encounter in the next time-interval for a given domain. A statistical anomaly detection module monitors the difference between the predicted and observed volumes to identify system-wide anomalies in the query counts. The following figure shows the overview of the predictive model, coupled with the anomaly detection module.</p>
+<a class="reference internal image-reference" href="_images/overview.png"><img alt="_images/overview.png" class="align-center" src="_images/overview.png" style="width: 600px;" /></a>
+<p>The input to the model is a time-series of vector of location-wise counts for a given domain. Optionally, <code class="docutils literal notranslate"><span class="pre">nxdomain</span></code> query counts can also be included in the input vector. The neural network consists of one or more layers of LSTM nodes, that combine the inputs in a non-linear fashion, along with the historical signal (or <em>memory</em>). The number of LSTM nodes in a layer correspond to the short-term memory used by the layer.</p>
+<p>An optional <strong>attention</strong> layer can be included after the first LSTM layer. This layer allows the model to pay selective attention (or focus) to a few inputs, and can improve the performance. Additionally, the output of the attention layer can also allow us to explain the model outputs, in terms of the inputs. This will be illustrated in the experimental results.</p>
+<div class="section" id="requirements">
+<h2>Requirements<a class="headerlink" href="#requirements" title="Permalink to this headline">¶</a></h2>
+<p>The implementation has been tested on <code class="docutils literal notranslate"><span class="pre">python</span> <span class="pre">3.7.3</span></code> and requires following packages:</p>
+<table class="docutils align-default">
+<colgroup>
+<col style="width: 64%" />
+<col style="width: 36%" />
+</colgroup>
+<thead>
+<tr class="row-odd"><th class="head"><p>Package</p></th>
+<th class="head"><p>Version</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">scikit-learn</span></code></p></td>
+<td><p>0.21.2</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">numpy</span></code></p></td>
+<td><p>1.16.4</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">pandas</span></code></p></td>
+<td><p>0.24.2</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">tensorflow</span></code></p></td>
+<td><p>1.13.1</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">keras</span></code></p></td>
+<td><p>2.3.1</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">plotly</span></code></p></td>
+<td><p>4.14.1</p></td>
+</tr>
+</tbody>
+</table>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>The <code class="docutils literal notranslate"><span class="pre">plotly</span></code> library is only for plotting. While <code class="docutils literal notranslate"><span class="pre">keras</span></code> was built using the <code class="docutils literal notranslate"><span class="pre">tensorflow</span></code> backend, other backends could work as well.</p>
+</div>
+</div>
+<div class="section" id="usage">
+<h2>Usage<a class="headerlink" href="#usage" title="Permalink to this headline">¶</a></h2>
+<p>All functions are implemented in the <code class="docutils literal notranslate"><span class="pre">dnspredict</span></code> module. Refer to the <code class="docutils literal notranslate"><span class="pre">DriverNotebook.ipynb</span></code> notebook for examples.</p>
+<div class="section" id="preparing-data">
+<h3>Preparing data<a class="headerlink" href="#preparing-data" title="Permalink to this headline">¶</a></h3>
+<p>We can either start with the <cite>response.json</cite> file or the <cite>.dat</cite> file and convert it into a format that can be used in the pipeline. The desired <cite>Pandas DataFrame</cite> has the following format:</p>
+<table class="docutils align-default">
+<colgroup>
+<col style="width: 21%" />
+<col style="width: 20%" />
+<col style="width: 20%" />
+<col style="width: 20%" />
+<col style="width: 20%" />
+</colgroup>
+<thead>
+<tr class="row-odd"><th class="head"><p>Index</p></th>
+<th class="head"><p>Location 1</p></th>
+<th class="head"><p>Location 2</p></th>
+<th class="head"><p>…</p></th>
+<th class="head"><p>Location n</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p>Time stamp 1</p></td>
+<td><p>count 1</p></td>
+<td><p>count 2</p></td>
+<td><p>…</p></td>
+<td><p>count n</p></td>
+</tr>
+</tbody>
+</table>
+<p>Two loading functions are provided that can load data from a <code class="docutils literal notranslate"><span class="pre">json</span></code> or a <code class="docutils literal notranslate"><span class="pre">csv</span></code> file into the above format.</p>
+<dl class="py function">
+<dt id="dnspredict.prepData">
+<code class="sig-prename descclassname">dnspredict.</code><code class="sig-name descname">prepData</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">filename</span></em>, <em class="sig-param"><span class="n">locs</span><span class="o">=</span><span class="default_value">[]</span></em>, <em class="sig-param"><span class="n">filters</span><span class="o">=</span><span class="default_value">{}</span></em>, <em class="sig-param"><span class="n">index</span><span class="o">=</span><span class="default_value">[]</span></em>, <em class="sig-param"><span class="n">return_locs</span><span class="o">=</span><span class="default_value">False</span></em><span class="sig-paren">)</span><a class="headerlink" href="#dnspredict.prepData" title="Permalink to this definition">¶</a></dt>
+<dd><p>Prepare data into a aggregate count time series data frame from a csv file with following format for each line:,count,ip_version,location,protocol,record_name,record_type,time,domain</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>filename</strong> – location of the input file in csv format</p></li>
+<li><p><strong>locs</strong> – list of all locations to be included in the output, missing locations are included with 0 counts. If None, then the locations in the given file are used (default - [])</p></li>
+<li><p><strong>filters</strong> – dictionary containing filters for each column, each filter rule is of the form: ‘column_name’: list of allowed values (default - {})</p></li>
+<li><p><strong>index</strong> – external time index provided to reindex the data frame (default - [])</p></li>
+<li><p><strong>return_locs</strong> – boolean indicator, if True, then the locs parameter is returned (default - False)</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>dataframe containing aggregated counts by location</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt id="dnspredict.prepDataJSON">
+<code class="sig-prename descclassname">dnspredict.</code><code class="sig-name descname">prepDataJSON</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">filename</span></em>, <em class="sig-param"><span class="n">locs</span><span class="o">=</span><span class="default_value">[]</span></em>, <em class="sig-param"><span class="n">filters</span><span class="o">=</span><span class="default_value">{}</span></em>, <em class="sig-param"><span class="n">index</span><span class="o">=</span><span class="default_value">[]</span></em>, <em class="sig-param"><span class="n">return_locs</span><span class="o">=</span><span class="default_value">False</span></em><span class="sig-paren">)</span><a class="headerlink" href="#dnspredict.prepDataJSON" title="Permalink to this definition">¶</a></dt>
+<dd><p>Prepare data into a aggregate count time series data frame from the json file containing query records.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>filename</strong> – location of the input file in json format</p></li>
+<li><p><strong>locs</strong> – list of all locations to be included in the output, missing locations are included with 0 counts. If None, then the locations in the given file are used (default - [])</p></li>
+<li><p><strong>filters</strong> – dictionary containing filters for each column, each filter rule is of the form: ‘column_name’: list of allowed values (default - {})</p></li>
+<li><p><strong>index</strong> – external time index provided to reindex the data frame (default - [])</p></li>
+<li><p><strong>return_locs</strong> – boolean indicator, if True, then the locs parameter is returned (default - False)</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>dataframe containing aggregated counts by location</p>
+</dd>
+</dl>
+</dd></dl>
+
+<p>The <code class="docutils literal notranslate"><span class="pre">filter</span></code> parameter can be used to create desired subsets for analysis. For instance, if one is interested in analyzing data for a single location (e.g., <cite>1</cite>), for only <cite>udp</cite> and <cite>tcp</cite> protocols and for a single domain (e.g., <cite>dnsmadeeasy.com</cite>), one can prepare data as follows:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span> <span class="nn">dnspredict</span> <span class="kn">import</span> <span class="o">*</span>
+
+<span class="n">filters</span> <span class="o">=</span> <span class="p">{</span><span class="s1">&#39;protocol&#39;</span><span class="p">:[</span><span class="s1">&#39;udp&#39;</span><span class="p">,</span><span class="s1">&#39;tcp&#39;</span><span class="p">],</span><span class="s1">&#39;domain&#39;</span><span class="p">:[</span><span class="s1">&#39;dnsmadeeasy.com&#39;</span><span class="p">]}</span>
+<span class="n">data</span> <span class="o">=</span> <span class="n">prepData</span><span class="p">(</span><span class="n">filename</span><span class="p">,</span><span class="n">locs</span><span class="o">=</span><span class="p">[</span><span class="s1">&#39;1&#39;</span><span class="p">],</span><span class="n">filters</span><span class="o">=</span><span class="n">filters</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>Similarly, one can pick out the <code class="docutils literal notranslate"><span class="pre">nxdomain</span></code> counts using the same function, but with an additional condition in the filter:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">filters_nx</span><span class="o">=</span> <span class="p">{</span><span class="s1">&#39;protocol&#39;</span><span class="p">:[</span><span class="s1">&#39;udp&#39;</span><span class="p">,</span><span class="s1">&#39;tcp&#39;</span><span class="p">],</span><span class="s1">&#39;record_name&#39;</span><span class="p">:[</span><span class="s1">&#39;nxdomain&#39;</span><span class="p">],</span><span class="s1">&#39;domain&#39;</span><span class="p">:[</span><span class="s1">&#39;dnsmadeeasy.com&#39;</span><span class="p">]}</span>
+<span class="n">data_nx</span> <span class="o">=</span> <span class="n">prepData</span><span class="p">(</span><span class="n">filename</span><span class="p">,</span><span class="n">locs</span><span class="o">=</span><span class="p">[</span><span class="s1">&#39;1&#39;</span><span class="p">],</span><span class="n">filters</span><span class="o">=</span><span class="n">filters</span><span class="p">,</span><span class="n">index</span><span class="o">=</span><span class="n">data</span><span class="o">.</span><span class="n">index</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>Note that you can pass an explicit <cite>index</cite> so that the index of the returned data set matches the index from the previous data set.</p>
+<p>The data can be visualized using the <code class="docutils literal notranslate"><span class="pre">plotly</span></code> library:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">px</span><span class="o">.</span><span class="n">line</span><span class="p">(</span><span class="n">data</span><span class="p">,</span><span class="n">x</span><span class="o">=</span><span class="n">data</span><span class="o">.</span><span class="n">index</span><span class="p">,</span><span class="n">y</span><span class="o">=</span><span class="n">data</span><span class="o">.</span><span class="n">columns</span><span class="p">,</span><span class="n">title</span><span class="o">=</span><span class="s1">&#39;dnsmadeeasy.com&#39;</span><span class="p">)</span>
+</pre></div>
+</div>
+<a class="reference internal image-reference" href="_images/sampledata.png"><img alt="_images/sampledata.png" class="align-center" src="_images/sampledata.png" style="width: 600px;" /></a>
+</div>
+<div class="section" id="preparing-training-data">
+<h3>Preparing training data<a class="headerlink" href="#preparing-training-data" title="Permalink to this headline">¶</a></h3>
+<p>To train the model, use the following function to prepare the training and test data sets.</p>
+<dl class="py function">
+<dt id="dnspredict.prepTFData">
+<code class="sig-prename descclassname">dnspredict.</code><code class="sig-name descname">prepTFData</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">data</span></em>, <em class="sig-param"><span class="n">locs</span></em>, <em class="sig-param"><span class="n">include_nx</span><span class="o">=</span><span class="default_value">False</span></em>, <em class="sig-param"><span class="n">data_nx</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="n">history</span><span class="o">=</span><span class="default_value">1</span></em>, <em class="sig-param"><span class="n">num_timepoints</span><span class="o">=</span><span class="default_value">1</span></em>, <em class="sig-param"><span class="n">scaler</span><span class="o">=</span><span class="default_value">None</span></em><span class="sig-paren">)</span><a class="headerlink" href="#dnspredict.prepTFData" title="Permalink to this definition">¶</a></dt>
+<dd><p>Prepare the data in the tensorflow format.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Input data</dt>
+<dd class="field-odd"><p>dataframe containing counts data for a given domain</p>
+</dd>
+<dt class="field-even">Input locs</dt>
+<dd class="field-even"><p>list of target locations</p>
+</dd>
+<dt class="field-odd">Input include_nx</dt>
+<dd class="field-odd"><p>flag to indicate if the nxdomain counts have to be included (default False)</p>
+</dd>
+<dt class="field-even">Input data_nx</dt>
+<dd class="field-even"><p>optional dataframe containing nxdomain counts (required if <code class="docutils literal notranslate"><span class="pre">include_nx</span> <span class="pre">=</span> <span class="pre">True</span></code>)</p>
+</dd>
+<dt class="field-odd">Input history</dt>
+<dd class="field-odd"><p>length of history for the predictive model (default 1)</p>
+</dd>
+<dt class="field-even">Input num_timepoints</dt>
+<dd class="field-even"><p>length of time series in each batch (default 1)</p>
+</dd>
+<dt class="field-odd">Scaler</dt>
+<dd class="field-odd"><p>optional scaler tuple to scale the data (for creating test data)</p>
+</dd>
+<dt class="field-even">Return X</dt>
+<dd class="field-even"><p>training input - A (n1 x n2 x n3) <code class="docutils literal notranslate"><span class="pre">numpy</span></code> array. n1 is equal to <code class="docutils literal notranslate"><span class="pre">ceil(data.shape[0]/num_timepoints)</span></code>. X is padded if the number of rows in data is not an exact multiple of num_timepoints. n2 is equal to num_timepoints. n3 is equal to (history x length of locs) if <code class="docutils literal notranslate"><span class="pre">include_nx==False</span></code>, otherwise (2 x history x length of locs).</p>
+</dd>
+<dt class="field-odd">Return Y</dt>
+<dd class="field-odd"><p>training targets - A (n1 x n2 x n3) <code class="docutils literal notranslate"><span class="pre">numpy</span></code> array. n1 is equal to <code class="docutils literal notranslate"><span class="pre">ceil(data.shape[0]/num_timepoints)</span></code>. Y is padded if the number of rows in data is not an exact multiple of num_timepoints. n2 is equal to num_timepoints. n3 is equal to (history x length of locs).</p>
+</dd>
+<dt class="field-even">Return scaler</dt>
+<dd class="field-even"><p>minmax scaler tuple used to normalize data (only if scaler == None)</p>
+</dd>
+</dl>
+</dd></dl>
+
+<p>The <cite>prepTFData</cite> function can be used to create the training and test data sets for analysis. For example:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">target_locs</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">data</span><span class="o">.</span><span class="n">columns</span><span class="p">)</span>
+<span class="n">include_nx</span> <span class="o">=</span> <span class="kc">False</span>
+
+<span class="n">train_start</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">to_datetime</span><span class="p">(</span><span class="s1">&#39;2019-07-24 00:00:00&#39;</span><span class="p">)</span>
+<span class="n">train_end</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">to_datetime</span><span class="p">(</span><span class="s1">&#39;2019-08-21 23:59:59&#39;</span><span class="p">)</span>
+<span class="n">history</span> <span class="o">=</span> <span class="mi">1</span> <span class="c1"># number of consecutive observations to concatenate as a &quot;single observation&quot;</span>
+<span class="n">num_timepoints</span> <span class="o">=</span> <span class="mi">144</span>
+
+<span class="n">df_train</span> <span class="o">=</span> <span class="n">data</span><span class="p">[</span><span class="n">train_start</span><span class="p">:</span><span class="n">train_end</span><span class="p">]</span>
+<span class="n">df_train_nx</span> <span class="o">=</span> <span class="n">data_nx</span><span class="p">[</span><span class="n">train_start</span><span class="p">:</span><span class="n">train_end</span><span class="p">]</span>
+<span class="n">trainX_arr</span><span class="p">,</span><span class="n">trainY_arr</span><span class="p">,</span><span class="n">scaler</span> <span class="o">=</span> <span class="n">prepTFData</span><span class="p">(</span><span class="n">df_train</span><span class="p">,</span>
+                                  <span class="n">target_locs</span><span class="p">,</span><span class="n">history</span><span class="o">=</span><span class="n">history</span><span class="p">,</span>
+                                  <span class="n">num_timepoints</span><span class="o">=</span><span class="n">num_timepoints</span><span class="p">,</span><span class="n">include_nx</span> <span class="o">=</span> <span class="n">include_nx</span><span class="p">,</span>
+                                  <span class="n">data_nx</span><span class="o">=</span><span class="n">df_train_nx</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>The above code will create the training data set and the scaler.</p>
+<p>The <code class="docutils literal notranslate"><span class="pre">history</span></code> and <code class="docutils literal notranslate"><span class="pre">num_timepoints</span></code> parameters have a similar impact on the resulting model. Both can be used to specify the size of the short term history in the model. While <code class="docutils literal notranslate"><span class="pre">history</span></code> concatenates several consecutive observations to create one input vector, and thus explicitly models the short-term dependencies, <code class="docutils literal notranslate"><span class="pre">num_timepoints</span></code> uses the original input vector, but <code class="docutils literal notranslate"><span class="pre">num_timepoints</span></code> observations are presented in a single batch and the model maintains the history over <code class="docutils literal notranslate"><span class="pre">num_timepoints</span></code> consecutive LSTM units. The number of parameters to be trained are fewer in the latter case.</p>
+</div>
+<div class="section" id="building-the-model">
+<h3>Building the model<a class="headerlink" href="#building-the-model" title="Permalink to this headline">¶</a></h3>
+<p>The LSTM model is created using the following function.</p>
+<dl class="py function">
+<dt id="dnspredict.buildLSTMModel">
+<code class="sig-prename descclassname">dnspredict.</code><code class="sig-name descname">buildLSTMModel</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">input_shape</span></em>, <em class="sig-param"><span class="n">output_units</span></em>, <em class="sig-param"><span class="n">n_units</span><span class="o">=</span><span class="default_value">8</span></em>, <em class="sig-param"><span class="n">n_layers</span><span class="o">=</span><span class="default_value">1</span></em>, <em class="sig-param"><span class="n">l1</span><span class="o">=</span><span class="default_value">0.01</span></em>, <em class="sig-param"><span class="n">l2</span><span class="o">=</span><span class="default_value">0.01</span></em>, <em class="sig-param"><span class="n">attention</span><span class="o">=</span><span class="default_value">False</span></em><span class="sig-paren">)</span><a class="headerlink" href="#dnspredict.buildLSTMModel" title="Permalink to this definition">¶</a></dt>
+<dd><p>Build the LSTM model for multivariate time series prediction</p>
+<dl class="field-list simple">
+<dt class="field-odd">Input input_shape</dt>
+<dd class="field-odd"><p><code class="docutils literal notranslate"><span class="pre">tuple</span></code> (length of history,number of input features)</p>
+</dd>
+<dt class="field-even">Input output_units</dt>
+<dd class="field-even"><p>number of targets in the multivariate output</p>
+</dd>
+<dt class="field-odd">Input n_units</dt>
+<dd class="field-odd"><p>Dimensionality of the hidden vector for LSTM (default 8)</p>
+</dd>
+<dt class="field-even">Input n_layers</dt>
+<dd class="field-even"><p>Number of LSTM layers in the model (default 1)</p>
+</dd>
+<dt class="field-odd">Input l1</dt>
+<dd class="field-odd"><p>l1-regularization penalty (default 0.01)</p>
+</dd>
+<dt class="field-even">Input l2</dt>
+<dd class="field-even"><p>l2-regularization penalty (default 0.01)</p>
+</dd>
+<dt class="field-odd">Input attention</dt>
+<dd class="field-odd"><p>boolean flag to indicate inclusion of an attention layer (default False)</p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p><code class="docutils literal notranslate"><span class="pre">keras</span></code> LSTM model</p>
+</dd>
+</dl>
+</dd></dl>
+
+<p>The <code class="docutils literal notranslate"><span class="pre">buildLSTMModel</span></code> permits increasing the complexity of the model (for modeling complex relationship between the input and output) by adding more LSTM layers (<cite>n_layers</cite>) and increasing the size of the output of each LSTM layer (<cite>n_units</cite>). The overfitting can be controlled by increasing the <code class="docutils literal notranslate"><span class="pre">l1</span></code> and <code class="docutils literal notranslate"><span class="pre">l2</span></code> regularization parameters. Additionally, setting the <code class="docutils literal notranslate"><span class="pre">attention</span></code> flag to <code class="docutils literal notranslate"><span class="pre">True</span></code> adds an <em>attention</em> layer immediately after the first LSTM layer to focus the attention and allow for explainability.</p>
+<p>A model can be created as follows:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">attention</span> <span class="o">=</span> <span class="kc">False</span>
+<span class="n">n_layers</span> <span class="o">=</span> <span class="mi">2</span>
+<span class="n">n_units</span> <span class="o">=</span> <span class="mi">8</span>
+<span class="n">l1</span> <span class="o">=</span> <span class="mf">0.01</span>
+<span class="n">l2</span> <span class="o">=</span> <span class="mf">0.01</span>
+
+<span class="n">input_shape</span> <span class="o">=</span> <span class="p">(</span><span class="n">trainX_arr</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="n">trainX_arr</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">2</span><span class="p">])</span>
+<span class="n">output_units</span> <span class="o">=</span> <span class="n">trainY_arr</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="n">trainY_arr</span><span class="o">.</span><span class="n">ndim</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>
+<span class="n">model</span> <span class="o">=</span> <span class="n">buildLSTMModel</span><span class="p">(</span><span class="n">input_shape</span><span class="p">,</span><span class="n">output_units</span><span class="p">,</span><span class="n">n_units</span><span class="p">,</span><span class="n">n_layers</span><span class="p">,</span><span class="n">l1</span><span class="p">,</span><span class="n">l2</span><span class="p">,</span><span class="n">attention</span><span class="o">=</span><span class="n">attention</span><span class="p">)</span>
+</pre></div>
+</div>
+</div>
+<div class="section" id="training-the-model">
+<h3>Training the model<a class="headerlink" href="#training-the-model" title="Permalink to this headline">¶</a></h3>
+<p>To train the model, execute the following:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">n_epochs</span> <span class="o">=</span> <span class="mi">50</span>
+<span class="n">verbose</span> <span class="o">=</span> <span class="mi">1</span> <span class="c1">#this controls the level of log messages during training</span>
+<span class="n">model</span><span class="o">.</span><span class="n">fit</span><span class="p">(</span><span class="n">trainX_arr</span><span class="p">,</span><span class="n">trainY_arr</span><span class="p">,</span><span class="n">epochs</span><span class="o">=</span><span class="n">n_epochs</span><span class="p">,</span><span class="n">batch_size</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span><span class="n">verbose</span><span class="o">=</span><span class="n">verbose</span><span class="p">,</span><span class="n">shuffle</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>The trained model can be saved to the disk and loaded back using the following two commands:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">model</span><span class="o">.</span><span class="n">save</span><span class="p">(</span><span class="s1">&#39;/path/to/location&#39;</span><span class="p">)</span>
+<span class="n">model</span> <span class="o">=</span> <span class="n">keras</span><span class="o">.</span><span class="n">models</span><span class="o">.</span><span class="n">load_model</span><span class="p">(</span><span class="s1">&#39;path/to/location&#39;</span><span class="p">)</span>
+</pre></div>
+</div>
+</div>
+<div class="section" id="using-the-model-for-predictions">
+<h3>Using the model for predictions<a class="headerlink" href="#using-the-model-for-predictions" title="Permalink to this headline">¶</a></h3>
+<p>To prepare test data, pass the scalers from above to scale the test data appropriately:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">test_start</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">to_datetime</span><span class="p">(</span><span class="s1">&#39;2019-08-22 00:00:00&#39;</span><span class="p">)</span>
+<span class="n">test_end</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">to_datetime</span><span class="p">(</span><span class="s1">&#39;2019-08-31 23:59:59&#39;</span><span class="p">)</span>
+
+<span class="n">df_test</span> <span class="o">=</span> <span class="n">data</span><span class="p">[</span><span class="n">test_start</span><span class="p">:</span><span class="n">test_end</span><span class="p">]</span>
+<span class="n">df_test_nx</span> <span class="o">=</span> <span class="n">data_nx</span><span class="p">[</span><span class="n">test_start</span><span class="p">:</span><span class="n">test_end</span><span class="p">]</span>
+<span class="n">testX_arr</span><span class="p">,</span><span class="n">testY_arr</span> <span class="o">=</span> <span class="n">prepTFData</span><span class="p">(</span><span class="n">df_test</span><span class="p">,</span>
+                       <span class="n">target_locs</span><span class="p">,</span><span class="n">history</span><span class="o">=</span><span class="n">history</span><span class="p">,</span>
+                       <span class="n">num_timepoints</span><span class="o">=</span><span class="n">num_timepoints</span><span class="p">,</span>
+                       <span class="n">include_nx</span> <span class="o">=</span> <span class="n">include_nx</span><span class="p">,</span><span class="n">data_nx</span><span class="o">=</span><span class="n">df_test_nx</span><span class="p">,</span><span class="n">scaler</span><span class="o">=</span><span class="n">scaler</span><span class="p">)</span>
+</pre></div>
+</div>
+<div class="admonition warning">
+<p class="admonition-title">Warning</p>
+<p>Make sure that the test data is scaled in the same manner as the training data.</p>
+</div>
+<p>To test the model on a new data set, the function <code class="docutils literal notranslate"><span class="pre">modelPredict</span></code> is used:
+.. currentmodule:: dnspredict
+.. autofunction:: modelPredict</p>
+<p>To generate predictions, execute the following:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">df_preds</span> <span class="o">=</span> <span class="n">modelPredict</span><span class="p">(</span><span class="n">model</span><span class="p">,</span><span class="n">testX_arr</span><span class="p">,</span><span class="n">df_test</span><span class="o">.</span><span class="n">shape</span><span class="p">,</span><span class="n">df_test</span><span class="o">.</span><span class="n">columns</span><span class="p">,</span><span class="n">df_test</span><span class="o">.</span><span class="n">index</span><span class="p">,</span><span class="n">scaler</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span>
+</pre></div>
+</div>
+<p>To visually compare the observed and predicted counts for a given location:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">loc</span> <span class="o">=</span> <span class="mi">10</span>
+<span class="n">df_loc_single</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">concat</span><span class="p">([</span><span class="n">df_test</span><span class="p">[</span><span class="n">loc</span><span class="p">],</span><span class="n">df_preds</span><span class="p">[</span><span class="n">loc</span><span class="p">]],</span><span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+<span class="n">df_loc_single</span><span class="o">.</span><span class="n">columns</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;Observed&#39;</span><span class="p">,</span><span class="s1">&#39;Predicted&#39;</span><span class="p">]</span>
+<span class="n">px</span><span class="o">.</span><span class="n">line</span><span class="p">(</span><span class="n">df_loc_single</span><span class="p">,</span> <span class="n">x</span><span class="o">=</span><span class="n">df_loc_single</span><span class="o">.</span><span class="n">index</span><span class="p">,</span> <span class="n">y</span><span class="o">=</span><span class="n">df_loc_single</span><span class="o">.</span><span class="n">columns</span><span class="p">,</span><span class="n">title</span><span class="o">=</span><span class="s1">&#39;Domain </span><span class="si">{}</span><span class="s1"> Location </span><span class="si">{}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="s1">&#39;dnsmadeeasy&#39;</span><span class="p">,</span><span class="n">loc</span><span class="p">))</span>
+</pre></div>
+</div>
+</div>
+<div class="section" id="anomaly-detection">
+<h3>Anomaly detection<a class="headerlink" href="#anomaly-detection" title="Permalink to this headline">¶</a></h3>
+<p>For anomaly detection, first the parameters are estimated by obtaining predictions on the training data set using the trained model and the estimating mean and standard deviations for the residuals, using the <code class="docutils literal notranslate"><span class="pre">estimateADParams</span></code> function:</p>
+<dl class="py function">
+<dt id="dnspredict.estimateADParams">
+<code class="sig-prename descclassname">dnspredict.</code><code class="sig-name descname">estimateADParams</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">model</span></em>, <em class="sig-param"><span class="n">trainX_arr</span></em>, <em class="sig-param"><span class="n">trainY_arr</span></em>, <em class="sig-param"><span class="n">train_shape</span></em>, <em class="sig-param"><span class="n">target_scaler</span></em><span class="sig-paren">)</span><a class="headerlink" href="#dnspredict.estimateADParams" title="Permalink to this definition">¶</a></dt>
+<dd><p>Estimate the mean and standard deviation parameters obtained using the model on 
+the training data.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Input model</dt>
+<dd class="field-odd"><p><code class="docutils literal notranslate"><span class="pre">keras</span></code> model for predicting query counts</p>
+</dd>
+<dt class="field-even">Input trainX_arr</dt>
+<dd class="field-even"><p>Input <cite>numpy</cite> array used for training</p>
+</dd>
+<dt class="field-odd">Input trainY_arr</dt>
+<dd class="field-odd"><p>Target <cite>numpy</cite> array used for training</p>
+</dd>
+<dt class="field-even">Input train_shape</dt>
+<dd class="field-even"><p>Shape (tuple) of the original training data</p>
+</dd>
+<dt class="field-odd">Input target_scaler</dt>
+<dd class="field-odd"><p>Target scaler to rescale the predictions</p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>tuple containing <cite>pandas DataFrame</cite> for location-wise residual means and standard deviation</p>
+</dd>
+</dl>
+</dd></dl>
+
+<p>The parameters are estimated as follows:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">ad_params</span> <span class="o">=</span> <span class="n">estimateADParams</span><span class="p">(</span><span class="n">model</span><span class="p">,</span><span class="n">trainX_arr</span><span class="p">,</span><span class="n">trainY_arr</span><span class="p">,</span><span class="n">df_train</span><span class="o">.</span><span class="n">shape</span><span class="p">,</span><span class="n">scaler</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span>
+</pre></div>
+</div>
+<p>To generate anomaly labels for test data, use the <code class="docutils literal notranslate"><span class="pre">detectAnomalies</span></code> function:</p>
+<dl class="py function">
+<dt id="dnspredict.detectAnomalies">
+<code class="sig-prename descclassname">dnspredict.</code><code class="sig-name descname">detectAnomalies</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">df_test</span></em>, <em class="sig-param"><span class="n">df_preds</span></em>, <em class="sig-param"><span class="n">res_stdev</span></em>, <em class="sig-param"><span class="n">thresh</span><span class="o">=</span><span class="default_value">3</span></em><span class="sig-paren">)</span><a class="headerlink" href="#dnspredict.detectAnomalies" title="Permalink to this definition">¶</a></dt>
+<dd><p>Assigns an anomaly label using the model predictions and the observed data.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Input df_test</dt>
+<dd class="field-odd"><p><code class="docutils literal notranslate"><span class="pre">pandas</span> <span class="pre">DataFrame</span></code> containing the observed data</p>
+</dd>
+<dt class="field-even">Input df_preds</dt>
+<dd class="field-even"><p><code class="docutils literal notranslate"><span class="pre">pandas</span> <span class="pre">DataFrame</span></code> containing the model predictions</p>
+</dd>
+<dt class="field-odd">Input res_stdev</dt>
+<dd class="field-odd"><p>standard deviations for each location</p>
+</dd>
+<dt class="field-even">Input thresh</dt>
+<dd class="field-even"><p>integer threshold to determine anomalies (default 3)</p>
+</dd>
+<dt class="field-odd">Returns</dt>
+<dd class="field-odd"><p>DataFrame containing anomaly labels</p>
+</dd>
+</dl>
+</dd></dl>
+
+<p>Using the model predictions obtained above, the anomaly scores can be obtained as:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">df_anomalies</span> <span class="o">=</span> <span class="n">detectAnomalies</span><span class="p">(</span><span class="n">df_test</span><span class="p">,</span><span class="n">df_preds</span><span class="p">,</span><span class="n">ad_params</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span><span class="n">thresh</span><span class="o">=</span><span class="mi">3</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>The following code can be used to plot the observed and predicted counts and the corresponding anomaly labels:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span> <span class="nn">plotly.subplots</span> <span class="kn">import</span> <span class="n">make_subplots</span>
+<span class="n">loc</span> <span class="o">=</span> <span class="mi">3</span>
+<span class="n">df_loc_single</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">concat</span><span class="p">([</span><span class="n">df_test</span><span class="p">[</span><span class="n">loc</span><span class="p">],</span><span class="n">df_preds</span><span class="p">[</span><span class="n">loc</span><span class="p">],</span><span class="n">df_anomalies</span><span class="p">[</span><span class="n">loc</span><span class="p">]],</span><span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+<span class="n">df_loc_single</span><span class="o">.</span><span class="n">columns</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;Observed&#39;</span><span class="p">,</span><span class="s1">&#39;Predicted&#39;</span><span class="p">,</span><span class="s1">&#39;Anomaly Label&#39;</span><span class="p">]</span>
+
+<span class="n">subfig</span> <span class="o">=</span> <span class="n">make_subplots</span><span class="p">(</span><span class="n">specs</span><span class="o">=</span><span class="p">[[{</span><span class="s2">&quot;secondary_y&quot;</span><span class="p">:</span> <span class="kc">True</span><span class="p">}]])</span>
+<span class="n">fig</span> <span class="o">=</span> <span class="n">px</span><span class="o">.</span><span class="n">line</span><span class="p">(</span><span class="n">df_loc_single</span><span class="p">,</span> <span class="n">x</span><span class="o">=</span><span class="n">df_loc_single</span><span class="o">.</span><span class="n">index</span><span class="p">,</span> <span class="n">y</span><span class="o">=</span><span class="p">[</span><span class="s1">&#39;Observed&#39;</span><span class="p">,</span><span class="s1">&#39;Predicted&#39;</span><span class="p">],</span><span class="n">title</span><span class="o">=</span><span class="s1">&#39;Domain </span><span class="si">{}</span><span class="s1"> Location </span><span class="si">{}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="s1">&#39;dnsmadeeasy&#39;</span><span class="p">,</span><span class="n">loc</span><span class="p">))</span>
+<span class="n">fig2</span> <span class="o">=</span> <span class="n">px</span><span class="o">.</span><span class="n">line</span><span class="p">(</span><span class="n">df_loc_single</span><span class="p">,</span> <span class="n">y</span><span class="o">=</span><span class="p">[</span><span class="s1">&#39;Anomaly Label&#39;</span><span class="p">],</span> <span class="n">render_mode</span><span class="o">=</span><span class="s2">&quot;webgl&quot;</span><span class="p">,)</span>
+<span class="n">fig2</span><span class="o">.</span><span class="n">update_traces</span><span class="p">(</span><span class="n">yaxis</span><span class="o">=</span><span class="s2">&quot;y2&quot;</span><span class="p">)</span>
+<span class="n">subfig</span><span class="o">.</span><span class="n">add_traces</span><span class="p">(</span><span class="n">fig</span><span class="o">.</span><span class="n">data</span> <span class="o">+</span> <span class="n">fig2</span><span class="o">.</span><span class="n">data</span><span class="p">)</span>
+<span class="n">subfig</span><span class="o">.</span><span class="n">layout</span><span class="o">.</span><span class="n">xaxis</span><span class="o">.</span><span class="n">title</span><span class="o">=</span><span class="s2">&quot;Time&quot;</span>
+<span class="n">subfig</span><span class="o">.</span><span class="n">layout</span><span class="o">.</span><span class="n">yaxis</span><span class="o">.</span><span class="n">title</span><span class="o">=</span><span class="s2">&quot;Query Counts&quot;</span>
+<span class="n">subfig</span><span class="o">.</span><span class="n">layout</span><span class="o">.</span><span class="n">yaxis2</span><span class="o">.</span><span class="n">title</span><span class="o">=</span><span class="s2">&quot;Anomaly Label&quot;</span>
+<span class="n">subfig</span><span class="o">.</span><span class="n">for_each_trace</span><span class="p">(</span><span class="k">lambda</span> <span class="n">t</span><span class="p">:</span> <span class="n">t</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">line</span><span class="o">=</span><span class="nb">dict</span><span class="p">(</span><span class="n">color</span><span class="o">=</span><span class="n">t</span><span class="o">.</span><span class="n">marker</span><span class="o">.</span><span class="n">color</span><span class="p">)))</span>
+<span class="n">subfig</span><span class="o">.</span><span class="n">show</span><span class="p">()</span>
+</pre></div>
+</div>
+<a class="reference internal image-reference" href="_images/sampleanomalies.png"><img alt="_images/sampleanomalies.png" class="align-center" src="_images/sampleanomalies.png" style="width: 800px;" /></a>
+</div>
+</div>
+</div>
+
+
+           </div>
+           
+          </div>
+          <footer>
+  
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        &copy; Copyright 2020, Varun Chandola
+
+    </p>
+  </div>
+  Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a <a href="https://github.com/rtfd/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script>
+
+  
+  
+    
+   
+
+</body>
+</html>

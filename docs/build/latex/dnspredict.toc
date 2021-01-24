@@ -1,0 +1,11 @@
+\babel@toc {english}{}
+\contentsline {chapter}{\numberline {1}Manual}{1}{chapter.1}
+\contentsline {section}{\numberline {1.1}Requirements}{2}{section.1.1}
+\contentsline {section}{\numberline {1.2}Usage}{2}{section.1.2}
+\contentsline {subsection}{\numberline {1.2.1}Preparing data}{2}{subsection.1.2.1}
+\contentsline {subsection}{\numberline {1.2.2}Preparing training data}{4}{subsection.1.2.2}
+\contentsline {subsection}{\numberline {1.2.3}Building the model}{5}{subsection.1.2.3}
+\contentsline {subsection}{\numberline {1.2.4}Training the model}{6}{subsection.1.2.4}
+\contentsline {subsection}{\numberline {1.2.5}Using the model for predictions}{6}{subsection.1.2.5}
+\contentsline {subsection}{\numberline {1.2.6}Anomaly detection}{7}{subsection.1.2.6}
+\contentsline {chapter}{Index}{9}{section*.9}
